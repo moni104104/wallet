@@ -3,9 +3,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { ToastContainer } from 'react-toastify';
 
 import Home from './components/Home';
-import Login from './components/AfterLog/Login';
-import Registration from './components/AfterLog/Registration';
-import Dashboard from './components/AfterLog/Dashboard';
+import Login from './components/pages/Login';
+import Registration from './components/pages/Registration';
+import Dashboard from './components/pages/Dashboard';
 
 const App = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);

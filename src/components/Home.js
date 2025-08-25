@@ -4,7 +4,7 @@ import profile from './images/profile.png';
 import registration from './images/website.png';
 import question from './images/question.png';
 import service from './images/service.png';
-import Login from './AfterLog/Login';
+import Login from './pages/Login';
 import { useState, useEffect } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 
