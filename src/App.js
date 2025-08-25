@@ -1,25 +1,57 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { ToastContainer } from 'react-toastify';
 
-function App() {
+import Home from './components/Home';
+import Login from './components/AfterLog/Login';
+import Registration from './components/AfterLog/Registration';
+import Dashboard from './components/AfterLog/Dashboard';
+
+const App = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const loggedIn = localStorage.getItem("isLoggedIn");
+    if (loggedIn === "true") {
+      setIsLoggedIn(true);
+    }
+  }, []);
+
+  const handleLogin = () => {
+    setIsLoggedIn(true);
+    localStorage.setItem("isLoggedIn", "true");
+  };
+
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    localStorage.removeItem("isLoggedIn");
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+      <ToastContainer />
+      <Routes>
+
+        <Route path="/" element={<Home />} />
+        <Route path="/registration" element={<Registration />} />
+        <Route
+          path="/login"
+          element={
+            isLoggedIn ? <Navigate to="/dashboard" /> : <Login onLogin={handleLogin} />
+          }
+        />
+
+        <Route
+          path="/dashboard/*"
+          element={
+            isLoggedIn ? <Dashboard onLogout={handleLogout} /> : <Navigate to="/" />
+          }
+        />
+
+        <Route path="*" element={<Navigate to="/" />} />
+      </Routes>
+    </Router>
   );
-}
+};
 
 export default App;
