@@ -1,43 +1,65 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import {useRef } from 'react';
-
 
 function Documents() {
   const [formData, setFormData] = useState({
     customerId: '',
     documentType: '',
     createdBy: '',
-    image: null
+    image: null,
   });
 
   const [isDeleting, setIsDeleting] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-const fileInputRef = useRef(null);
+  const [customer, setCustomer] = useState(null);
+  const [error, setError] = useState(null);
+
+  const fileInputRef = useRef(null);
 
   const handleChange = (e) => {
     const { name, value, type, files } = e.target;
 
     if (type === 'file') {
-      setFormData({ ...formData, image: files[0] });
+      setFormData((prevData) => ({ ...prevData, image: files[0] }));
     } else {
-      setFormData({ ...formData, [name]: value });
+      setFormData((prevData) => ({ ...prevData, [name]: value }));
     }
   };
+
+  useEffect(() => {
+    try {
+      console.log('Stored in localStorage:', localStorage.getItem('customer'));
+
+      const storedCustomer = localStorage.getItem('customer');
+      if (!storedCustomer) {
+        setError('No customer found in LocalStorage');
+        return;
+      }
+
+      const customerObj = JSON.parse(storedCustomer);
+      setCustomer(customerObj);
+
+      setFormData((prevData) => ({
+        ...prevData,
+        customerId: customerObj.customerId,
+        createdBy: `${customerObj.firstName} ${customerObj.lastName}`,
+      }));
+    } catch (err) {
+      console.error('Error loading customer from localStorage:', err);
+      setError('Error fetching customer data.');
+    }
+  }, []);
 
   const checkIfExists = async () => {
     const { customerId, documentType } = formData;
     try {
-      const res = await fetch(
-        `http://localhost:8900/api/document/${customerId}/${documentType}`
-      );
+      const res = await fetch(`http://localhost:8900/api/document/${customerId}/${documentType}`);
       if (res.ok) {
-        const existing = await res.json();
-        return existing;
+        return await res.json();
       }
     } catch (err) {
-      console.error('Error checking document existence:', err);
+      console.error('Error checking existing document:', err);
       toast.error('Error checking existing document');
     }
     return null;
@@ -49,22 +71,18 @@ const fileInputRef = useRef(null);
     try {
       const res = await fetch(
         `http://localhost:8900/api/document/${customerId}/${documentType}`,
-        {
-          method: 'DELETE',
-        }
+        { method: 'DELETE' }
       );
       setIsDeleting(false);
-      if (res.ok) {
-        return true;
-      } else {
-        const errorData = await res.json();
-        toast.error('Delete failed: ' + (errorData.message || 'Unknown error'));
-        return false;
-      }
+      if (res.ok) return true;
+
+      const errorData = await res.json();
+      toast.error('Delete failed: ' + (errorData.message || 'Unknown error'));
+      return false;
     } catch (err) {
       setIsDeleting(false);
       console.error('Delete error:', err);
-      toast.error('Error deleting existing document');
+      toast.error('Error deleting document');
       return false;
     }
   };
@@ -84,16 +102,19 @@ const fileInputRef = useRef(null);
         method: 'POST',
         body: data,
       });
-
       setIsUploading(false);
 
       if (res.ok) {
-        toast.success('Document uploaded!');
-        setFormData({ customerId: '', documentType: '', createdBy: '', image: null });
+        toast.success('Document uploaded Successfully!');
+        setFormData({
+          customerId: customer?.customerId || '',
+          documentType: '',
+          createdBy: customer ? `${customer.firstName} ${customer.lastName}` : '',
+          image: null,
+        });
         if (fileInputRef.current) {
-         fileInputRef.current.value = '';
-}
-
+          fileInputRef.current.value = '';
+        }
       } else {
         const errorData = await res.json();
         toast.error('Upload failed: ' + (errorData.message || 'Unknown error'));
@@ -112,6 +133,7 @@ const fileInputRef = useRef(null);
       toast.warn('Please fill all required fields.');
       return;
     }
+
     if (!formData.image) {
       toast.warn('Please select a file to upload.');
       return;
@@ -121,7 +143,7 @@ const fileInputRef = useRef(null);
 
     if (existing) {
       const confirmReplace = window.confirm(
-        'Document already exists. Do you want to delete the existing document and replace it?'
+        'Document already exists. Do you want to replace it?'
       );
       if (confirmReplace) {
         const deleted = await deleteExistingDocument();
@@ -129,7 +151,15 @@ const fileInputRef = useRef(null);
           await uploadDocument();
         }
       } else {
-        toast.info('Upload cancelled by user.');
+         setFormData({
+          customerId: customer?.customerId || '',
+          documentType: '',
+          createdBy: customer ? `${customer.firstName} ${customer.lastName}` : '',
+          image: null,
+        });
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
       }
     } else {
       await uploadDocument();
@@ -138,14 +168,14 @@ const fileInputRef = useRef(null);
 
   const styles = {
     container: {
-      maxWidth: '500px',
-      margin: '40px auto',
-      padding: '20px',
-      border: '1px solid #ddd',
-      borderRadius: '10px',
-      background: '#f9f9f9',
-      fontFamily: 'Arial, sans-serif',
-    },
+    width: "420px",
+    margin: "40px auto",
+    padding: "20px",
+    border: "2px solid #ccc",
+    borderRadius: "10px",
+    backgroundColor: "#f9f9f9",
+    boxShadow: "0px 0px 10px rgba(203, 27, 27, 0.1)",
+  },
     label: { display: 'block', marginBottom: '5px', fontWeight: 'bold' },
     input: {
       marginBottom: '15px',
@@ -174,23 +204,26 @@ const fileInputRef = useRef(null);
       marginBottom: '20px',
       color: '#333',
     },
+    readOnlyField: {
+      marginBottom: '15px',
+      backgroundColor: '#e9ecef',
+      border: '1px solid #ccc',
+      padding: '8px',
+      borderRadius: '5px',
+      fontSize: '14px',
+    },
   };
 
   return (
+  
     <div style={styles.container}>
       <ToastContainer />
       <h2 style={styles.header}>Upload Document</h2>
+      {error && <p style={{ color: 'red' }}>{error}</p>}
+
       <form onSubmit={handleSubmit}>
-        <label style={styles.label}>Customer ID</label>
-        <input
-          type="number"
-          name="customerId"
-          value={formData.customerId} className='no-arrow'
-          onChange={handleChange}
-          required
-          style={styles.input}
-          min="1"
-        />
+    
+          <input type="hidden" name="customerId" value={formData.customerId} />
 
         <label style={styles.label}>Document Type</label>
         <select
@@ -208,15 +241,7 @@ const fileInputRef = useRef(null);
           <option value="DRIVING">DRIVING LICENSE</option>
         </select>
 
-        <label style={styles.label}>Created By</label>
-        <input
-          type="text"
-          name="createdBy"
-          value={formData.createdBy}
-          onChange={handleChange}
-          required
-          style={styles.input}
-        />
+          <input type="hidden" name="createdBy" value={formData.createdBy} />
 
         <label style={styles.label}>Document Image</label>
         <input
@@ -225,13 +250,20 @@ const fileInputRef = useRef(null);
           accept="image/*,application/pdf"
           onChange={handleChange}
           style={styles.input}
-          ref= {fileInputRef}
+          ref={fileInputRef}
           required
         />
 
-<button type="submit" style={{...styles.button}} disabled={isDeleting || isUploading}>
-  Upload
-</button>
+        <button
+          type="submit"
+          style={{
+            ...styles.button,
+            ...(isDeleting || isUploading ? styles.disabledButton : {}),
+          }}
+          disabled={isDeleting || isUploading}
+        >
+          Upload
+        </button>
       </form>
     </div>
   );

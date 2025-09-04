@@ -4,37 +4,47 @@ import React, { useEffect, useState } from 'react';
 const Profile= () => {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
+ const [customer, setCustomer] = useState(null);
+  
 
-useEffect(() => {
-  const fetchUserData = async () => {
-    try {
-      const email = localStorage.getItem('emailId');
-      console.log("Email from localStorage:", email);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const storedCustomer = localStorage.getItem('customer');
+        console.log('Stored in localStorage:', storedCustomer);
 
-      if (!email) {
-        setError('No email found in localStorage.');
-        return;
+        if (!storedCustomer) {
+          setError('No customer found in LocalStorage');
+          return;
+        }
+
+        const customerObj = JSON.parse(storedCustomer);
+        setCustomer(customerObj);
+
+        if (!customerObj.emailId) {
+          setError('Email not found in customer data');
+          return;
+        }
+
+        const response = await fetch(`http://localhost:8900/api/customer/${encodeURIComponent(customerObj.emailId)}`);
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch user data. Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log("Fetched user data:", data);
+
+        setUser(data.data);
+      } catch (err) {
+        console.error("Error in fetchUserData:", err);
+        setError('Error fetching user data.');
       }
+    };
 
-      const response = await fetch(`http://localhost:8900/api/customer/${encodeURIComponent(email)}`);
-
-      if (!response.ok) {
-        throw new Error(`Failed to fetch user data. Status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Fetched user data:", data);
-      // setUser(data);
-      setUser(data.data);
-    } catch (err) {
-      console.error("Error in fetchUserData:", err);
-      setError('Error fetching user data.');
-    }
-  };
-
-  fetchUserData();
-}, []);
-
+    fetchUserData();
+  }, []);
+  
 
   if (error) {
     return (
@@ -121,7 +131,7 @@ useEffect(() => {
 
       <div style={fieldContainer}>
         <span style={labelStyle}>Password:</span>
-        <span style={valueStyle}>{user.password}</span>
+        <span style={valueStyle}>******</span>
       </div>
 
       <div style={fieldContainer}>

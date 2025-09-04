@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState,useEffect } from "react";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../../App.css';
@@ -21,11 +21,49 @@ function Deposit() {
     });
   };
 
+const [accountList, setAccountList] = useState([]);
+useEffect(() => {
+  const fetchAccounts = async () => {
+    try {
+      const storedCustomer = localStorage.getItem('customer');
+      if (!storedCustomer) {
+        toast.error("No customer found in localStorage", { position: "top-center" });
+        return;
+      }
+
+      const customer = JSON.parse(storedCustomer);
+      const response = await fetch(`http://localhost:8900/api/accounts/${customer.customerId}`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch accounts. Status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("Fetched accounts:", result);
+
+      if (Array.isArray(result.data)) {
+        setAccountList(result.data); 
+      } else {
+      toast.error("you don't have any account please create first", { position: "top-center" });
+      }
+
+    } catch (error) {
+      console.error("Error fetching accounts:", error);
+      toast.error("you don't have any account please create first", { position: "top-center" });
+    }
+  };
+
+  fetchAccounts();
+}, []);
+
+
+
+
   const handleSubmit = async(e) => {
     e.preventDefault();
     const payload = {
     ...formData,
-    transactionDate: new Date().toISOString().split('T')[0], // auto-fill transaction date
+    transactionDate: new Date().toISOString().split('T')[0], 
   };
 
   try {
@@ -142,7 +180,7 @@ function Deposit() {
           required
         />
 
-
+{/* 
         <label style={styles.label} htmlFor="accountNumber2">
            Account Number
         </label>
@@ -155,7 +193,24 @@ function Deposit() {
           style={styles.input}
           placeholder="Enter Account number"
           required
-        />
+        /> */}
+
+
+<select
+  name="accountNumber"
+  value={formData.accountNumber}
+  onChange={handleChange}
+  style={styles.input}
+  required
+>
+  <option value="">Select Account</option>
+  {accountList.map((account) => (
+    <option key={account.accountNumber} value={account.accountNumber}>
+      {account.accountNumber} ({account.accountType})
+    </option>
+  ))}
+</select>
+
 
         {/* <label style={styles.label} htmlFor="transactionDate">
           Transaction Date
@@ -204,3 +259,7 @@ function Deposit() {
 
 
 export default Deposit;
+    
+
+
+

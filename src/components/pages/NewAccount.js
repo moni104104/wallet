@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css'; 
-import '../../App.css';
-
+import 'react-toastify/dist/ReactToastify.css';
 
 function NewAccount() {
   const [formData, setFormData] = useState({
@@ -14,15 +12,36 @@ function NewAccount() {
     description: '',
   });
 
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    try {
+      const storedCustomer = localStorage.getItem('customer');
+      if (!storedCustomer) {
+        setError('No customer found in localStorage');
+        return;
+      }
+
+      const customerObj = JSON.parse(storedCustomer);
+      setFormData((prevData) => ({
+        ...prevData,
+        customerId: customerObj.customerId,
+      }));
+    } catch (err) {
+      console.error('Error loading customer from localStorage:', err);
+      setError('Error fetching customer data.');
+    }
+  }, []);
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = async(e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const payload = {
       ...formData,
-      openingDate: new Date().toISOString().split('T')[0], // e.g., 2025-08-15
+      openingDate: new Date().toISOString().split('T')[0],
     };
 
     try {
@@ -36,44 +55,45 @@ function NewAccount() {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Response:', result);
-        toast.success(`Account created Successfully`, { position: 'top-center' });
+        toast.success('Account created successfully!', { position: 'top-center' });
         handleReset();
       } else {
-        const errorText = await response.text();
-        toast.error(`You are not a Valid user!! Register First`, { position: 'top-center' });
-        
+        const error = await response.json();
+        if (error.errors) {
+          Object.entries(error.errors).forEach(([field, msg]) => {
+            toast.error(`${field}: ${msg}`, { position: 'top-center' });
+          });
+        } else {
+          toast.error('Error: ' + (error.message || 'Unknown error'), { position: 'top-center' });
+        }
       }
     } catch (error) {
       console.error('Error:', error);
       alert('Error while creating account.');
     }
-
   };
 
-    const handleReset = () => {
-    setFormData({
-   customerId: '',
-    accountNumber: '',
-    accountType: '',
-    openingBalance: '',
-    openingDate: '',
-    description: '',
-    });
-  }
+  const handleReset = () => {
+    setFormData((prevData) => ({
+      ...prevData,
+      accountNumber: '',
+      accountType: '',
+      openingBalance: '',
+      openingDate: '',
+      description: '',
+    }));
+  };
+
   return (
     <>
       <style>{`
-       
         .container {
           margin: 50px auto;
           max-width: 400px;
           background-color: white;
           padding: 30px;
           border-radius: 8px;
-          box-sizing: border-box;
           box-shadow: 0 0 10px rgba(0,0,0,0.1);
-
         }
         h2 {
           text-align: center;
@@ -82,27 +102,29 @@ function NewAccount() {
           display: flex;
           flex-direction: column;
         }
-
-        label{
+        label {
           font-weight: bold;
-          font-size:17px;
+          font-size: 17px;
+          margin-top: 10px;
         }
         input[type="number"],
         input[type="date"],
         textarea,
         select {
-          padding: 5px;
-          margin: 10px 0;
+          padding: 8px;
+          margin-top: 5px;
           width: 100%;
           box-sizing: border-box;
+          border-radius: 4px;
+          border: 1px solid #ccc;
         }
         input[type="submit"] {
           background-color: green;
           border-radius: 4px;
           padding: 10px;
-          margin: 20px 0;
+          margin-top: 20px;
           color: white;
-          font-size: 20px;
+          font-size: 18px;
           border: none;
           cursor: pointer;
         }
@@ -110,40 +132,55 @@ function NewAccount() {
 
       <div className="container">
         <h2>New Account</h2>
-        <ToastContainer/>
+        <ToastContainer />
+        {error && <p style={{ color: 'red' }}>{error}</p>}
+
         <form onSubmit={handleSubmit}>
-          <label htmlFor="customerId">CustomerId</label>
-          <input type="number" name="customerId" className="no-arrow" value={formData.customerId} onChange={handleChange} required />
-          <input type="hidden" name="accountNumber" className="no-arrow" value={formData.accountNumber} />
-
-          <label htmlFor="accountType">Account Type</label>
-          <input list="accountTypes" name="accountType" value={formData.accountType} onChange={handleChange} required
-          />
-
-          <datalist id="accountTypes">
-            <option value="SAVINGS" />
-            <option value="CURRENT" />
-            <option value="SALARY" />
-            <option value="RD" />
-            <option value="FD" />
-            <option value="XYZ" />
-
-          </datalist>
-
-          <label htmlFor="openingBalance">Opening Balance</label>
-          <input
-            type="number" name="openingBalance" className="no-arrow" value={formData.openingBalance} onChange={handleChange} placeholder="Enter Amount in INR"  required
-          />
-
+          <input type="hidden" name="customerId" value={formData.customerId} />
+          <input type="hidden" name="accountNumber" value={formData.accountNumber} />
           <input type="hidden" name="openingDate" value={formData.openingDate} />
 
-          <label htmlFor="description">Description</label>
-          <textarea name="description" value={formData.description} onChange={handleChange} rows="4" required
+          <label htmlFor="accountType">Account Type</label>
+          <select
+            name="accountType"
+            value={formData.accountType}
+            onChange={handleChange}
+            required
+          >
+            <option value="">Select Account Type</option>
+            <option value="SAVINGS">Savings</option>
+            <option value="CURRENT">Current</option>
+            <option value="SALARY">Salary</option>
+            <option value="RD">Recurring Deposit (RD)</option>
+            <option value="FD">Fixed Deposit (FD)</option>
+            <option value="XYZ">XYZ</option>
+          </select>
+
+          {/* Opening Balance */}
+          <label htmlFor="openingBalance">Opening Balance</label>
+          <input
+            type="number"
+            name="openingBalance"
+            value={formData.openingBalance}
+            onChange={handleChange}
+           className="no-arrow"
+             placeholder="Enter amount in INR"
+            required
           />
 
-          <input type="hidden" name="customerId" value={formData.customerId} />
+          {/* Description */}
+          <label htmlFor="description">Description</label>
+          <textarea
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            rows="4"
+            placeholder="Enter account description"
+            required
+          />
 
-          <input type="submit" value="New Account" onSubmit={handleSubmit}/>
+          {/* Submit */}
+          <input type="submit" value="Create Account" />
         </form>
       </div>
     </>

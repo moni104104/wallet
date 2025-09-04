@@ -2,15 +2,14 @@ import React, { useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { useNavigate } from 'react-router-dom';
-import Dashboard from './Dashboard';
-function Login({onLogin}) {
+
+function Login({ onLogin }) {
   const navigate = useNavigate();
- 
+
   const [loginData, setLoginData] = useState({
     emailId: '',
     password: '',
   });
-
 
   const handleChange = (e) => {
     setLoginData({ ...loginData, [e.target.name]: e.target.value });
@@ -30,26 +29,30 @@ function Login({onLogin}) {
 
       if (response.ok) {
         const result = await response.json();
-        console.log('Response:', result);
+        console.log('Response:', result.data);
 
-         localStorage.setItem('isLoggedIn', 'true');
-   localStorage.setItem('emailId', loginData.emailId);
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('customer', JSON.stringify(result.data));
 
-           toast.success('LoggedIn Successfully', { position: 'top-center' });
 
-             if (onLogin) 
-              onLogin();
+        toast.success('Logged in Successfully', { position: 'top-center' });
 
-   setTimeout(() => {
-     navigate('/dashboard');
-   },500);     
+        if (onLogin) onLogin();
+
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 500);
       } else {
-      toast.error('Invalid Email Id and Password', { position: 'top-center' });
+        toast.error('Invalid Email Id or Password', { position: 'top-center' });
       }
     } catch (error) {
       console.error('Error:', error);
       alert('Server error, please try again later.');
     }
+  };
+
+  const handleRegisterRedirect = () => {
+    navigate('/registration'); 
   };
 
   return (
@@ -98,11 +101,31 @@ function Login({onLogin}) {
         .login-button:hover {
           background-color: #0056b3;
         }
+
+        .register-section {
+          text-align: center;
+          margin-top: 20px;
+        }
+
+        .register-button {
+          background-color: #28a745;
+          color: white;
+          border: none;
+          padding: 10px 15px;
+          border-radius: 6px;
+          font-size: 16px;
+          cursor: pointer;
+          margin-top: 10px;
+        }
+
+        .register-button:hover {
+          background-color: #218838;
+        }
       `}</style>
 
       <div className="login-container">
         <h2>Login</h2>
-        <ToastContainer/>
+        <ToastContainer />
         <form onSubmit={handleSubmit}>
           <div>
             <label>Email ID</label>
@@ -126,10 +149,16 @@ function Login({onLogin}) {
           </div>
           <button type="submit" className="login-button">Login</button>
         </form>
+
+        <div className="register-section">
+          <p>Don't have an account?</p>
+          <button className="register-button" onClick={handleRegisterRedirect}>
+            New Registration
+          </button>
+        </div>
       </div>
     </>
   );
 }
 
 export default Login;
-

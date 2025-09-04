@@ -18,7 +18,7 @@ function CheckBalance() {
     try {
       const response = await fetch(`http://localhost:8900/api/account/balance/${accountNumber}`);
       if (!response.ok) {
-      toast.error('your account number is invalid', { position: 'top-center' });
+      toast.error('Invalid', { position: 'top-center' });
         throw new Error('Account not found');
       }
 
